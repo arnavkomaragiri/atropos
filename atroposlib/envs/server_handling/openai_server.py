@@ -3,6 +3,7 @@ import collections
 import time
 from asyncio import exceptions
 from typing import Optional
+from urllib.parse import urljoin
 
 import aiohttp
 import numpy as np
@@ -141,12 +142,10 @@ class OpenAIServer:
     async def check_server_status_task(self):
         while True:
             try:
-                await self.openai.completions.create(
-                    model=self.config.model_name,
-                    prompt="hi",
-                    max_tokens=1,
-                )
-                self.server_healthy = True
+                health_endpoint = urljoin(self.config.base_url, "health")
+                async with aiohttp.ClientSession() as sess:
+                    async with sess.get(health_endpoint) as resp:
+                        self.server_health = resp.status == 200
             except (
                 aiohttp.ClientError,
                 openai.OpenAIError,
